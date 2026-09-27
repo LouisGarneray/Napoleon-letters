@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Napoleon's Movements — Napoleonica Corpus</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=GFS+Didot&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #C9973D;
+    --gold-light: #E8BC6A;
+    --teal: #1B4A5C;
+    --teal-deep: #0E2E3A;
+    --cream: #F0EDD8;
+    --cream-dark: #E2DBBF;
+    --red: #9B2335;
+    --text: #0E2E3A;
+    --panel-bg: rgba(14,46,58,0.97);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { height:100%; font-family:'GFS Didot', serif; background:var(--teal-deep); color:var(--cream); overflow:hidden; }
+
+  #app { display:flex; height:100vh; width:100vw; }
+
+  /* ── LEFT PANEL ── */
+  #panel {
+    width: 340px;
+    min-width: 340px;
+    background: var(--panel-bg);
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid rgba(201,151,61,0.3);
+    z-index: 1000;
+    overflow: hidden;
+  }
+  #panel-header {
+    padding: 0;
+    border-bottom: 1px solid rgba(201,151,61,0.35);
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+  }
+  #header-bee-band {
+    background: var(--teal-deep);
+    padding: 18px 20px 14px;
+    position: relative;
+  }
+  #header-bee-band::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cg transform='translate(30,30) scale(0.55)' fill='%23C9973D' opacity='0.12'%3E%3Cellipse cx='0' cy='0' rx='8' ry='13'/%3E%3Cellipse cx='-11' cy='-4' rx='14' ry='6' transform='rotate(-30)'/%3E%3Cellipse cx='11' cy='-4' rx='14' ry='6' transform='rotate(30)'/%3E%3Ccircle cx='0' cy='-16' r='5'/%3E%3Cline x1='-6' y1='-18' x2='-14' y2='-24' stroke='%23C9973D' stroke-width='1.5'/%3E%3Cline x1='6' y1='-18' x2='14' y2='-24' stroke='%23C9973D' stroke-width='1.5'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+    pointer-events: none;
+  }
+  .bee-svg-wrap {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    z-index: 1;
+  }
+  #panel-header h1 {
+    font-family: 'GFS Didot', serif;
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--gold-light);
+    line-height: 1.2;
+    letter-spacing: 0.5px;
+  }
+  #panel-header .subtitle {
+    font-size: 10px;
+    color: rgba(240,237,216,0.45);
+    letter-spacing: 2.2px;
+    text-transform: uppercase;
+    margin-top: 5px;
+  }
+  /* gold divider stripe */
+  #header-gold-stripe {
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold) 20%, var(--gold-light) 50%, var(--gold) 80%, transparent);
+  }
+
+  /* ── PERIOD FILTER ── */
+  #period-section {
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid rgba(201,151,61,0.15);
+    flex-shrink: 0;
+  }
+  #period-section h3 {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+  .period-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    margin: 2px 2px;
+    border-radius: 2px;
+    border: 1px solid;
+    font-family: 'GFS Didot', serif;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .period-btn.active { color: #fff; }
+  .period-btn:not(.active) { background: transparent; color: rgba(245,237,216,0.55); }
+  .period-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+
+  /* ── LOCATION LIST ── */
+  #list-section {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 10px 0 0;
+  }
+  #list-section h3 {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    padding: 0 16px 8px;
+    flex-shrink: 0;
+  }
+  #location-list {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0 8px 10px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201,151,61,0.3) transparent;
+  }
+  .loc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-left: 2px solid transparent;
+  }
+  .loc-item:hover { background: rgba(201,151,61,0.1); }
+  .loc-item.selected { background: rgba(201,151,61,0.15); border-left-color: var(--gold); }
+  .loc-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:5px; }
+  .loc-info { flex:1; min-width:0; }
+  .loc-name { font-size:13px; color:var(--cream); font-weight:500; }
+  .loc-date { font-size:10px; color:rgba(245,237,216,0.5); margin-top:1px; font-style:italic; }
+  .loc-count {
+    font-size: 10px;
+    color: var(--gold);
+    background: rgba(201,151,61,0.15);
+    padding: 1px 5px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    align-self: center;
+    font-style:normal;
+  }
+
+  /* ── STATS BAR ── */
+  #stats-bar {
+    padding: 10px 16px;
+    border-top: 1px solid rgba(201,151,61,0.2);
+    display: flex;
+    gap: 16px;
+    flex-shrink: 0;
+    background: rgba(14,46,58,0.7);
+  }
+  .stat { text-align:center; }
+  .stat-val { font-size: 18px; color: var(--gold-light); font-family:'GFS Didot',serif; font-weight:700; }
+  .stat-lbl { font-size: 9px; color: rgba(245,237,216,0.4); letter-spacing:1.5px; text-transform:uppercase; }
+
+  /* ── MAP ── */
+  #map { flex:1; position:relative; }
+
+  /* ── INFO TOOLTIP ── */
+  #info-card {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 240px;
+    background: var(--panel-bg);
+    border: 1px solid rgba(201,151,61,0.35);
+    padding: 14px 16px;
+    z-index: 1000;
+    display: none;
+    border-radius: 2px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  #info-card.visible { display:block; }
+  #info-card h4 {
+    font-family:'GFS Didot',serif;
+    font-size: 16px;
+    color: var(--gold-light);
+    margin-bottom: 6px;
+  }
+  #info-card .info-date { font-size: 11px; color:rgba(245,237,216,0.6); font-style:italic; margin-bottom:8px; }
+  #info-card .info-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--cream);
+    padding: 3px 0;
+    border-top: 1px solid rgba(201,151,61,0.1);
+  }
+  #info-card .info-stat span:first-child { color:rgba(245,237,216,0.5); }
+  #info-close {
+    position:absolute; top:8px; right:10px; cursor:pointer;
+    color:rgba(245,237,216,0.4); font-size:16px; line-height:1;
+  }
+  #info-close:hover { color:var(--gold); }
+
+  /* ── MAP LEGEND ── */
+  #map-legend {
+    position: absolute;
+    bottom: 28px;
+    right: 16px;
+    background: var(--panel-bg);
+    border: 1px solid rgba(201,151,61,0.3);
+    padding: 10px 14px;
+    z-index: 900;
+    font-size: 11px;
+    min-width: 160px;
+  }
+  #map-legend h5 {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .legend-item { display:flex; align-items:center; gap:8px; margin-bottom:5px; }
+  .legend-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+
+  /* ── LEAFLET OVERRIDES ── */
+  .leaflet-container { background: #0e2333 !important; }
+  .leaflet-tile { }
+  .custom-marker { cursor: pointer; }
+
+
+  /* ── BATTLES / CAMPAIGN SECTION ── */
+  #battles-section {
+    padding: 10px 14px 10px;
+    border-bottom: 1px solid rgba(201,151,61,0.15);
+    flex-shrink: 0;
+  }
+  #battles-section h3 {
+    font-size: 9px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  #campaign-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 210px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201,151,61,0.3) transparent;
+  }
+  .campaign-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 2px;
+    transition: background 0.12s;
+  }
+  .campaign-row:hover { background: rgba(201,151,61,0.08); }
+  .campaign-check {
+    width: 11px; height: 11px;
+    border-radius: 2px;
+    border: 1px solid;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px;
+    transition: all 0.15s;
+  }
+  .campaign-swatch {
+    width: 22px; height: 3px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .campaign-label {
+    font-size: 10.5px;
+    color: rgba(240,237,216,0.75);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+  }
+  .battles-result-legend {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid rgba(201,151,61,0.12);
+  }
+  .battles-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: rgba(240,237,216,0.55);
+  }
+
+  #info-notes {
+    font-size: 11px;
+    color: rgba(240,237,216,0.6);
+    font-style: italic;
+    margin-top: 8px;
+    line-height: 1.5;
+    border-top: 1px solid rgba(201,151,61,0.1);
+    padding-top: 7px;
+  }
+
+  .pulse-ring {
+    position:absolute;
+    border-radius:50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { transform:scale(0.8); opacity:0.8; }
+    70% { transform:scale(1.6); opacity:0; }
+    100% { transform:scale(0.8); opacity:0; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="panel">
+    <div id="panel-header">
+    <div id="header-bee-band">
+      <div class="bee-svg-wrap">
+        <img src="data:image/png;base64,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" width="52" height="60" style="flex-shrink:0;filter:drop-shadow(0 0 6px rgba(201,151,61,0.4))"/>
+        <div>
+          <h1>Napoleon's Movements</h1>
+          <div class="subtitle">Napoleonica Corpus · 1784 – 1821</div>
+        </div>
+      </div>
+    </div>
+    <div id="header-gold-stripe"></div>
+    </div>
+
+    <div id="period-section">
+      <h3>Filter by Time Period</h3>
+      <div id="period-filters"></div>
+    </div>
+
+
+    <div id="battles-section">
+      <h3>Campaigns &amp; Battles</h3>
+      <div id="campaign-list"></div>
+      <div class="battles-result-legend">
+        <div class="battles-legend-item"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#7EC8A0"></span> Victory</div>
+        <div class="battles-legend-item"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#CF6679"></span> Defeat</div>
+        <div class="battles-legend-item"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#9B8EC4"></span> Drawn</div>
+      </div>
+    </div>
+    <div id="list-section">
+      <h3 id="list-label">Locations</h3>
+      <div id="location-list"></div>
+    </div>
+
+    <div id="stats-bar">
+      <div class="stat">
+        <div class="stat-val" id="stat-locs">—</div>
+        <div class="stat-lbl">Locations</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="stat-letters">—</div>
+        <div class="stat-lbl">Letters</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="stat-years">—</div>
+        <div class="stat-lbl">Year Span</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="map">
+    <div id="info-card">
+      <span id="info-close">✕</span>
+      <h4 id="info-name"></h4>
+      <div class="info-date" id="info-date"></div>
+      <div class="info-stat"><span>Letters sent</span><span id="info-letters"></span></div>
+      <div class="info-stat"><span>Period</span><span id="info-period"></span></div>
+      <div class="info-stat"><span>First letter</span><span id="info-first"></span></div>
+      <div class="info-stat"><span>Last letter</span><span id="info-last"></span></div>
+      <div class="info-stat" id="info-result-row"><span>Result</span><span id="info-result-val"></span></div>
+      <div id="info-notes" style="display:none"></div>
+    </div>
+    <div id="map-legend">
+      <h5>Period</h5>
+      <div id="legend-items"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════════════════════
+// DATA — extracted from napoleonica_research_Napoleon.xlsx
+// Places with 5+ Napoleon letters, with coordinates
+// ══════════════════════════════════════════════════════════════════════════════
+const PERIODS = [
+  { id:'all',      label:'All Periods',       color:'#C9973D' },
+  { id:'youth',    label:'Youth & Formation', color:'#6B93D6', years:[1784,1795] },
+  { id:'italy',    label:'Italian Campaign',  color:'#E8BC6A', years:[1796,1797] },
+  { id:'egypt',    label:'Egypt Expedition',  color:'#D4994A', years:[1798,1799] },
+  { id:'consulate',label:'Consulate & Empire',color:'#7EC8A0', years:[1800,1811] },
+  { id:'russia',   label:'Russian Campaign',  color:'#CF6679', years:[1812,1812] },
+  { id:'decline',  label:'Decline & Exile',   color:'#9B8EC4', years:[1813,1821] },
+];
+
+const LOCATIONS = [
+  // Youth & Formation
+  { name:'Brienne',       lat:48.394, lng:4.526,   first:'1784/07/05', last:'1814/02/01', count:45,  period:'youth'     , notes:"Napoleon studied at the Ecole Militaire de Brienne from age 9 to 15. He returned as Emperor in January 1814 to fight Blucher on the very ground where he had played as a schoolboy." },
+  { name:'Paris',         lat:48.853, lng:2.350,   first:'1785/03/28', last:'1815/06/21', count:11042,period:'consulate' , notes:"The centre of Napoleon's political and administrative world. From the Tuileries he governed an empire stretching from Lisbon to Warsaw, dictating thousands of letters daily to his secretaries." },
+  { name:'Ajaccio',       lat:41.919, lng:8.739,   first:'1786/11/19', last:'1793/04/20', count:20,  period:'youth'     , notes:"Napoleon's birthplace on Corsica. He returned several times during his early career to support the Bonaparte family's position on the island before the French Revolution swept them out." },
+  { name:'Auxonne',       lat:47.194, lng:5.389,   first:'1788/08/29', last:'1800/05/08', count:13,  period:'youth'     , notes:"A garrison town on the Saone where Napoleon served as a young artillery officer, spending long hours in the regimental library and filling notebooks with military theory and history." },
+  { name:'Valence',       lat:44.934, lng:4.897,   first:'1785/11/25', last:'1791/07/27', count:8,   period:'youth'     , notes:"Napoleon's first posting as a second lieutenant in the La Fere artillery regiment in 1785. He lodged with a local family and spent his free time in voracious reading." },
+  { name:'Nice',          lat:43.710, lng:7.262,   first:'1793/07/03', last:'1796/04/01', count:205, period:'youth'     , notes:"French headquarters for the Army of Italy before the 1796 campaign. Napoleon arrived to take command here and immediately energised demoralised troops with his plans for a swift offensive." },
+  { name:'Marseille',     lat:43.303, lng:5.369,   first:'1793/09/15', last:'1796/03/22', count:42,  period:'youth'     , notes:"A key logistical base during the siege of Toulon. Napoleon's family took refuge here in 1793 after being expelled from Corsica by the Paolists." },
+  { name:'Toulon',        lat:43.126, lng:5.928,   first:'1794/03/22', last:'1798/05/27', count:56,  period:'youth'     , notes:"Site of Napoleon's first great success in 1793. His artillery plan to capture the forts commanding the harbour forced the British fleet to evacuate. He was promoted to general de brigade at 24." },
+  { name:'Antibes',       lat:43.580, lng:7.124,   first:'1794/04/07', last:'1794/12/20', count:25,  period:'youth'     , notes:"Napoleon was briefly imprisoned at Fort Carre after the fall of Robespierre in 1794, suspected of Jacobin sympathies. He was released after two weeks for lack of evidence." },
+  // Italian Campaign
+  { name:'Albenga',       lat:44.049, lng:8.215,   first:'1796/04/04', last:'1796/04/11', count:23,  period:'italy'     , notes:"Napoleon's first operational headquarters in the Italian campaign, April 1796. From here he launched the lightning sequence of battles that shattered the Austro-Piedmontese alliance in less than two weeks." },
+  { name:'Cherasco',      lat:44.648, lng:7.858,   first:'1796/04/26', last:'1796/04/29', count:24,  period:'italy'     , notes:"Site of the armistice with Piedmont signed on 28 April 1796, just 17 days after the campaign opened. Piedmont's exit from the war left Austria to face France alone in Italy." },
+  { name:'Lodi',          lat:45.310, lng:9.504,   first:'1796/05/11', last:'1796/05/23', count:14,  period:'italy'     , notes:"The bridge at Lodi where Napoleon led the charge on 10 May 1796 became one of the founding myths of his career. It was here, he later wrote, that he first conceived of himself as a man of destiny." },
+  { name:'Milan',         lat:45.468, lng:9.182,   first:'1796/05/14', last:'1807/12/23', count:1070, period:'italy'    , notes:"Napoleon's principal Italian headquarters. His entry in May 1796 was greeted as liberation. He organised the Cisalpine Republic here and returned multiple times as Emperor." },
+  { name:'Brescia',       lat:45.538, lng:10.220,  first:'1796/05/28', last:'1805/06/12', count:60,  period:'italy'     , notes:"A key logistics hub and staging point throughout the Italian campaigns. Napoleon passed through repeatedly while managing operations around the Mincio and Adige rivers." },
+  { name:'Verona',        lat:45.438, lng:10.992,  first:'1796/06/03', last:'1805/06/16', count:177, period:'italy'     , notes:"An important strategic crossroads on the Adige held throughout the Italian campaign. The city's position between Mantua and Austria made it a constant operational concern." },
+  { name:'Bologne',       lat:44.494, lng:11.342,  first:'1796/06/20', last:'1805/06/24', count:77,  period:'italy'     , notes:"Napoleon occupied Bologna in June 1796, extracting an armistice from the Papal States. It became part of the Cisalpine Republic the following year." },
+  { name:'Livourne',      lat:43.547, lng:10.318,  first:'1796/06/27', last:'1796/06/30', count:8,   period:'italy'     , notes:"Napoleon occupied Livorno in June 1796, seizing British goods and cutting off trade. The port was a key target in his economic war against Britain." },
+  { name:'Castiglione',   lat:45.466, lng:10.637,  first:'1796/07/20', last:'1796/08/06', count:27,  period:'italy'     , notes:"Napoleon's headquarters during August 1796, between the battles of Lonato and Castiglione as he defeated Wurmser's first relief attempt for Mantua." },
+  { name:'Mantoue',       lat:45.156, lng:10.791,  first:'1796/10/09', last:'1805/06/21', count:84,  period:'italy'     , notes:"The great Austrian fortress whose seven-month siege shaped the entire Italian campaign. Napoleon defeated four successive relief armies before it finally surrendered in February 1797." },
+  { name:'Passariano',    lat:45.948, lng:13.010,  first:'1796/09/25', last:'1798/11/09', count:271, period:'italy'     , notes:"The Villa Manin at Passariano served as Napoleon's headquarters during negotiations leading to the Treaty of Campo Formio, October 1797, which ended the War of the First Coalition." },
+  { name:'Mombello',      lat:45.627, lng:8.953,   first:'1797/05/17', last:'1797/11/05', count:216, period:'italy'     , notes:"Napoleon held court at the Castello di Mombello near Milan for six months in 1797, governing occupied Italy and receiving ambassadors. He negotiated with the Pope and Italian states from here." },
+  { name:'Ancône',        lat:43.617, lng:13.517,  first:'1797/02/09', last:'1797/02/13', count:15,  period:'italy'     , notes:"Napoleon seized Ancona from the Papal States in February 1797, securing the Adriatic coast and giving France a strategic naval base in central Italy." },
+  { name:'Tolentino',     lat:43.209, lng:13.281,  first:'1797/02/16', last:'1797/02/19', count:23,  period:'italy'     , notes:"Napoleon forced the Pope to sign the Treaty of Tolentino here on 19 February 1797, extracting vast art treasures, territory and a large indemnity from the Papal States." },
+  { name:'Leoben',        lat:47.378, lng:15.094,  first:'1797/04/13', last:'1797/04/19', count:12,  period:'italy'     , notes:"Site of the preliminary peace with Austria signed 18 April 1797. Napoleon negotiated almost alone, exceeding his instructions but securing terms that became the basis of the Treaty of Campo Formio." },
+  { name:'Goritz',        lat:45.955, lng:13.643,  first:'1797/03/21', last:'1797/03/26', count:21,  period:'italy'     , notes:"Napoleon's advance headquarters during the march on Vienna in March 1797. Archduke Charles fell back as Napoleon pushed through the Julian Alps toward the Austrian capital." },
+  // Egypt
+  { name:'Malte',         lat:35.899, lng:14.514,  first:'1798/06/13', last:'1798/06/18', count:40,  period:'egypt'     , notes:"Napoleon seized Malta from the Knights of St John in June 1798 in a single day, securing a vital Mediterranean base en route to Egypt. He reorganised the island's institutions before sailing on." },
+  { name:'Alexandrie',    lat:31.200, lng:29.919,  first:'1798/07/03', last:'1807/12/26', count:113, period:'egypt'     , notes:"The first Egyptian city taken, stormed on 2 July 1798. Napoleon established his base here and issued proclamations presenting France as a liberator of the Egyptian people from Mameluke tyranny." },
+  { name:'Le Caire',      lat:30.044, lng:31.236,  first:'1798/06/26', last:'1799/08/17', count:1923, period:'egypt'    , notes:"Napoleon's Egyptian capital for over a year. From Cairo he governed Egypt, founded the Institut d'Egypte for scientific research, and launched the Syrian expedition. Over 1,900 letters sent from here." },
+  { name:'El-Rahmânieh',  lat:30.725, lng:30.424,  first:'1798/07/10', last:'1799/08/08', count:32,  period:'egypt'     },
+  { name:'Salheyeh',      lat:30.680, lng:32.010,  first:'1798/08/12', last:'1799/06/09', count:18,  period:'egypt'     , notes:"Napoleon's forward base for the Syrian expedition, used as a staging point before the march into Palestine and again on the return after the failed siege of Acre." },
+  { name:'Suez',          lat:29.966, lng:32.549,  first:'1798/12/27', last:'1798/12/30', count:5,   period:'egypt'     , notes:"Napoleon visited Suez in December 1798 to study the feasibility of a canal connecting the Red Sea to the Mediterranean. His engineers made the first modern survey of the route." },
+  { name:'Jaffa',         lat:32.050, lng:34.759,  first:'1799/03/09', last:'1799/05/28', count:36,  period:'egypt'     , notes:"Napoleon took Jaffa by storm in March 1799. The subsequent execution of several thousand prisoners and the plague outbreak that struck the army cast a long shadow over the expedition." },
+  { name:'Saint-Jean-d\'Acre', lat:32.933, lng:35.083, first:'1799/03/20', last:'1799/05/16', count:54, period:'egypt'  },
+  { name:'Gaza',          lat:31.507, lng:34.456,  first:'1799/02/25', last:'1799/02/27', count:13,  period:'egypt'     , notes:"Napoleon passed through Gaza in February 1799 during the advance into Syria, coordinating the logistics of the Egyptian army's march northward." },
+  // Consulate & Empire
+  { name:'Malmaison',     lat:48.871, lng:2.167,   first:'1800/01/29', last:'1802/10/15', count:458, period:'consulate' , notes:"Josephine's beloved chateau outside Paris, which Napoleon made his primary residence as First Consul. He oversaw the reorganisation of France from here. Josephine died here in May 1814." },
+  { name:'La Malmaison',  lat:48.871, lng:2.167,   first:'1803/09/12', last:'1815/06/29', count:136, period:'consulate' },
+  { name:'Genève',        lat:46.205, lng:6.147,   first:'1800/05/09', last:'1800/05/11', count:29,  period:'consulate' , notes:"Napoleon passed through Geneva in May 1800 en route to the Marengo campaign, coordinating the army's crossing of the Alps via the Great St Bernard Pass." },
+  { name:'Lausanne',      lat:46.520, lng:6.632,   first:'1800/05/13', last:'1800/05/16', count:39,  period:'consulate' , notes:"A staging point on the route to the Great St Bernard Pass in May 1800. Napoleon paused here to coordinate army logistics before the Alpine crossing." },
+  { name:'Martigny',      lat:46.100, lng:7.073,   first:'1800/05/17', last:'1800/05/19', count:24,  period:'consulate' , notes:"Assembly point before crossing the Great St Bernard Pass in May 1800. Napoleon famously crossed on a mule, later glorified by David's painting showing him on a rearing horse." },
+  { name:'Aoste',         lat:45.737, lng:7.315,   first:'1800/05/21', last:'1800/05/25', count:21,  period:'consulate' , notes:"The first town on the Italian side of the Alps after the Great St Bernard crossing. Napoleon reorganised his army here after the difficult mountain passage." },
+  { name:'Ivrée',         lat:45.466, lng:7.874,   first:'1800/05/27', last:'1800/05/29', count:12,  period:'consulate' , notes:"French forces descended into the Po plain through Ivrea in late May 1800, threatening to cut Melas's Austrian army off from its supply lines — the strategic premise of Marengo." },
+  { name:'Saint-Cloud',   lat:48.848, lng:2.208,   first:'1801/10/21', last:'1813/11/20', count:5646, period:'consulate', notes:"Napoleon's preferred official residence as Consul and Emperor. He directed the coup of 18 Brumaire here, and it became the administrative heart of the Empire. Over 5,600 letters sent from here." },
+  { name:'Fontainebleau', lat:48.405, lng:2.702,   first:'1803/10/25', last:'1814/04/20', count:350, period:'consulate' , notes:"The magnificent royal chateau where Napoleon spent weeks each autumn hunting. He signed his first abdication here on 6 April 1814, then bade farewell to the Old Guard in the famous Cour du Cheval Blanc." },
+  { name:'Boulogne-sur-Mer', lat:50.725, lng:1.613, first:'1803/11/04', last:'1804/08/27', count:92, period:'consulate' , notes:"Napoleon assembled the Grande Armee on the Channel coast at Boulogne 1803-05, ostensibly to invade England. The camp became the training ground that forged Europe's finest army." },
+  { name:'Lyon',          lat:45.764, lng:4.834,   first:'1798/05/06', last:'1815/03/15', count:92,  period:'consulate' , notes:"Napoleon entered Lyon in triumph on his return from Elba in March 1815 without firing a shot. The city received him enthusiastically and the army melted to his side." },
+  { name:'Anvers',        lat:51.221, lng:4.400,   first:'1803/07/20', last:'1811/10/03', count:71,  period:'consulate' , notes:"A key strategic port in the Continental System. Napoleon visited in 1803 and 1811, personally directing works to expand the port and build a great naval arsenal." },
+  { name:'Bruxelles',     lat:50.851, lng:4.352,   first:'1803/07/22', last:'1803/07/29', count:42,  period:'consulate' , notes:"Napoleon visited Brussels in 1803 inspecting Channel coast defences. The city was part of the French Empire as capital of the Dyle department." },
+  { name:'Amsterdam',     lat:52.374, lng:4.890,   first:'1811/10/10', last:'1811/10/23', count:110, period:'consulate' , notes:"Napoleon visited Amsterdam in October 1811 after annexing the Kingdom of Holland from his brother Louis. He inspected the port and reorganised the city's administration." },
+  { name:'Düsseldorf',    lat:51.228, lng:6.773,   first:'1811/11/02', last:'1811/11/05', count:29,  period:'consulate' },
+  { name:'Dresden',       lat:51.050, lng:13.737,  first:'1807/06/16', last:'1813/05/11', count:230, period:'consulate' , notes:"Napoleon's HQ in Saxony in 1807 and 1813. The Dresden conference of May 1812 gathered Napoleon and the allied sovereigns before the march on Russia." },
+  { name:'Reims',         lat:49.258, lng:4.032,   first:'1803/08/10', last:'1814/03/17', count:68,  period:'consulate' , notes:"Napoleon passed through Reims several times, most notably in March 1814 when he retook the city from Allied forces and briefly restored his communications during the Campaign of France." },
+  // Russian Campaign
+  { name:'Thorn',         lat:53.014, lng:18.598,  first:'1812/06/03', last:'1812/06/07', count:67,  period:'russia'    },
+  { name:'Kœnigsberg',    lat:54.710, lng:20.510,  first:'1812/06/12', last:'1812/06/16', count:67,  period:'russia'    },
+  { name:'Gumbinnen',     lat:54.645, lng:22.014,  first:'1812/06/19', last:'1812/06/21', count:47,  period:'russia'    },
+  { name:'Kovno',         lat:54.897, lng:23.886,  first:'1812/06/24', last:'1812/06/27', count:21,  period:'russia'    },
+  { name:'Vilna',         lat:54.687, lng:25.280,  first:'1812/06/29', last:'1812/07/16', count:188, period:'russia'    },
+  { name:'Vitebsk',       lat:55.193, lng:30.206,  first:'1812/07/28', last:'1812/08/12', count:173, period:'russia'    , notes:"Napoleon paused at Vitebsk in late July 1812, briefly considering wintering there. Instead he pressed on towards Smolensk and Moscow — a decision that would prove catastrophic." },
+  { name:'Smolensk',      lat:54.790, lng:32.050,  first:'1812/08/18', last:'1812/11/14', count:109, period:'russia'    , notes:"Napoleon had hoped to force a decisive battle at Smolensk, but the Russians burned the city and withdrew. He hesitated here for days before deciding fatally to press on to Moscow." },
+  { name:'Mojaïsk',       lat:55.514, lng:36.034,  first:'1812/09/06', last:'1812/09/12', count:43,  period:'russia'    },
+  { name:'Moscou',        lat:55.757, lng:37.615,  first:'1812/09/14', last:'1812/10/19', count:226, period:'russia'    , notes:"Napoleon occupied Moscow from 14 September to 19 October 1812. The city had been largely abandoned and set ablaze by the Russians. He waited vainly for Alexander to sue for peace." },
+  { name:'Smorgoni',      lat:54.482, lng:26.395,  first:'1812/12/05', last:'1812/12/05', count:11,  period:'russia'    , notes:"Napoleon left the Grande Armee at Smorgoni on 5 December 1812, racing back to Paris after learning of Malet's coup attempt. The army was left to its fate in the frozen wasteland." },
+  // Decline & Exile
+  { name:'Lützen',        lat:51.262, lng:12.139,  first:'1813/05/01', last:'1813/05/03', count:26,  period:'decline'   },
+  { name:'Bautzen',       lat:51.181, lng:14.433,  first:'1813/05/20', last:'1813/09/06', count:57,  period:'decline'   , notes:"Napoleon won at Bautzen in May 1813 but Ney's failure to cut the Allied retreat made it a hollow victory. He accepted the Armistice of Plaswitz shortly after, a decision he later bitterly regretted." },
+  { name:'Dresden (1813)', lat:51.060, lng:13.750,  first:'1813/08/15', last:'1813/08/30', count:80, period:'decline'   },
+  { name:'Pirna',         lat:50.961, lng:13.939,  first:'1813/09/11', last:'1813/09/21', count:73,  period:'decline'   , notes:"Napoleon's headquarters south of Dresden during the August 1813 campaign, directing operations across the Saxon theatre from this strategic Elbe crossing." },
+  { name:'Leipzig',       lat:51.340, lng:12.375,  first:'1813/10/14', last:'1813/10/19', count:60,  period:'decline'   , notes:"Napoleon's main headquarters immediately before the catastrophic Battle of the Nations, 16-19 October 1813. Outnumbered 3-to-1, the army was shattered and the Empire began to collapse." },
+  { name:'Francfort',     lat:50.110, lng:8.682,   first:'1813/10/31', last:'1813/11/01', count:14,  period:'decline'   , notes:"Napoleon passed through Frankfurt in late October 1813 during the retreat to the Rhine after Leipzig. Metternich offered peace terms here which Napoleon rejected." },
+  { name:'Nogent-sur-Seine', lat:48.494, lng:3.500, first:'1814/02/07', last:'1814/02/22', count:119, period:'decline'  , notes:"Napoleon's central headquarters during the Campaign of France in February 1814, positioned to strike at the separated Allied armies in his extraordinary series of defensive victories." },
+  { name:'Soissons',      lat:49.381, lng:3.324,   first:'1814/03/11', last:'1814/03/13', count:36,  period:'decline'   , notes:"Napoleon briefly retook Soissons from Allied forces in March 1814 as part of his last-ditch efforts to defend the road to Paris during the Campaign of France." },
+  { name:'Portoferraio',  lat:42.811, lng:10.320,  first:'1814/05/04', last:'1815/02/26', count:255, period:'decline'   , notes:"The capital of Elba, Napoleon's first place of exile from May 1814 to February 1815. He governed the tiny island with characteristic energy, improving roads, mines and agriculture." },
+  { name:'Laon',          lat:49.563, lng:3.624,   first:'1815/06/12', last:'1815/06/13', count:6,   period:'decline'   , notes:"Napoleon advanced to Laon in June 1815 during the opening of the Waterloo campaign, issuing final orders for the concentration of the Army of the North." },
+
+  // ── Major missing locations (20+ letters) ──────────────────────────────────
+  // Germany / Poland / Prussia
+  { name:'Dresde',         lat:51.050, lng:13.737, first:'1807/07/18', last:'1813/10/07', count:1892, period:'consulate' , notes:"Napoleon's grand imperial headquarters in Saxony, used in 1807 and extensively in 1813. Nearly 1,900 letters were sent from here, making it one of his most active command posts." },
+  { name:'Finkenstein',    lat:54.020, lng:19.650, first:'1807/04/01', last:'1807/06/06', count:776,  period:'consulate' , notes:"Napoleon spent ten weeks at Schloss Finkenstein directing operations that led to the decisive victory at Friedland. Marie Walewska visited him here during this period." },
+  { name:'Osterode',       lat:53.695, lng:19.967, first:'1807/02/22', last:'1807/04/01', count:687,  period:'consulate' , notes:"Napoleon's winter headquarters in East Prussia from February to April 1807, after the bloody battle of Eylau. He directed operations against Bennigsen from this small Polish town." },
+  { name:'Varsovie',       lat:52.237, lng:21.017, first:'1806/12/19', last:'1807/01/30', count:307,  period:'consulate' , notes:"Napoleon entered Warsaw in January 1807 to great popular acclaim, greeted as a liberator. He met Countess Marie Walewska here and created the Duchy of Warsaw from Prussian-held Polish territory." },
+  { name:'Berlin',         lat:52.520, lng:13.405, first:'1806/10/27', last:'1806/11/24', count:283,  period:'consulate' , notes:"Napoleon entered Berlin in triumph on 27 October 1806, just 13 days after destroying the Prussian army at Jena-Auerstedt. He signed the Berlin Decree launching the Continental System here." },
+  { name:'Posen',          lat:52.407, lng:16.934, first:'1806/11/28', last:'1812/06/01', count:276,  period:'consulate' , notes:"Napoleon passed through Poznan (Posen) in late 1806 during the pursuit of Prussian and Russian forces, using it as a logistics hub for the Polish campaign." },
+  { name:'Erfurt',         lat:50.978, lng:11.030, first:'1808/09/27', last:'1813/10/24', count:119,  period:'consulate' , notes:"Napoleon staged the magnificent Congress of Erfurt in October 1808, gathering the kings and princes of Europe in a display of imperial power designed to impress Tsar Alexander." },
+  { name:'Tilsit',         lat:55.091, lng:21.864, first:'1807/06/19', last:'1807/07/13', count:125,  period:'consulate' , notes:"The extraordinary peace conference on a raft in the Niemen River, June-July 1807. Napoleon and Tsar Alexander divided Europe between them. Prussia was humiliated; the Duchy of Warsaw created." },
+  { name:'Mayence',        lat:50.000, lng:8.271,  first:'1804/09/20', last:'1813/11/07', count:512,  period:'consulate' , notes:"Mainz was Napoleon's Rhine headquarters, where he reviewed troops and directed operations in Germany in 1804, 1806, 1809 and during the 1813 retreat." },
+  { name:'Neumarkt',       lat:49.280, lng:11.460, first:'1813/05/31', last:'1813/06/05', count:96,   period:'decline'   , notes:"Napoleon's forward headquarters in early June 1813 during the pursuit after Bautzen, pressing the Allied retreat towards the Silesian frontier." },
+  { name:'Gœrlitz',        lat:51.155, lng:14.987, first:'1813/05/23', last:'1814/05/24', count:83,   period:'decline'   },
+  { name:'Munich',         lat:48.137, lng:11.576, first:'1805/10/24', last:'1809/10/22', count:77,   period:'consulate' , notes:"Napoleon visited Munich in 1805 and 1809, cementing the alliance with Bavaria. He attended the wedding of his stepson Eugene de Beauharnais to Princess Augusta of Bavaria here." },
+  { name:'Gloubokoïé',     lat:55.137, lng:27.690, first:'1812/07/18', last:'1812/07/22', count:72,   period:'russia'    },
+  { name:'Magdebourg',     lat:52.120, lng:11.627, first:'1813/07/12', last:'1813/07/14', count:37,   period:'decline'   , notes:"Napoleon used Magdeburg as a logistics base and fortified strongpoint on the Elbe line during the 1813 German campaign." },
+  { name:'Strasbourg',     lat:48.573, lng:7.752,  first:'1805/09/26', last:'1809/04/15', count:65,   period:'consulate' , notes:"A key staging point on the Rhine. Napoleon passed through Strasbourg at speed in September 1805 to surprise the Austrians, a crossing that opened the Ulm-Austerlitz campaign." },
+  { name:'Dantzig',        lat:54.372, lng:18.638, first:'1807/06/01', last:'1812/06/11', count:58,   period:'consulate' , notes:"Napoleon besieged Danzig in 1807 and used it as a vital supply base for the Polish campaign. The city guarded the Baltic coast and was essential for maintaining the Grande Armee." },
+  { name:'Stuttgart',      lat:48.776, lng:9.183,  first:'1806/01/19', last:'1809/10/23', count:22,   period:'consulate' , notes:"Napoleon visited Stuttgart in January 1806, meeting King Frederick of Wurttemberg and cementing the Rhenish Confederation alliance." },
+  { name:'Wurtzbourg',     lat:49.795, lng:9.929,  first:'1806/10/03', last:'1813/08/02', count:27,   period:'consulate' , notes:"Napoleon met with German princes in Wurzburg in October 1806 before the Prussian campaign and again in 1813 during the German campaign." },
+  { name:'Brünn',          lat:49.195, lng:16.608, first:'1805/11/22', last:'1809/09/18', count:28,   period:'consulate' , notes:"Napoleon entered Brno (Brunn) after Austerlitz. The city served as his headquarters during the armistice negotiations and the signing of the Treaty of Pressburg." },
+  { name:'Donauwörth',     lat:48.718, lng:10.782, first:'1805/10/08', last:'1809/04/18', count:36,   period:'consulate' , notes:"Napoleon crossed the Danube at Donauworth in October 1805 during the Ulm manoeuvre, cutting off Mack's Austrian army from its supply lines." },
+  { name:'Potsdam',        lat:52.390, lng:13.064, first:'1806/10/24', last:'1806/10/26', count:35,   period:'consulate' , notes:"Napoleon visited Frederick the Great's tomb at Sans-Souci in October 1806, accompanied by his marshals. He seized Frederick's sword and sent it to Paris as a trophy." },
+  { name:'Preussisch-Eylau',lat:54.394,lng:20.639, first:'1807/02/09', last:'1807/06/14', count:53,   period:'consulate' , notes:"Napoleon established his headquarters near Eylau after the bloody battle of 8 February 1807. He was deeply shaken by the carnage and spent weeks here reorganising the army." },
+  { name:'Venise',         lat:45.441, lng:12.316, first:'1807/11/30', last:'1807/12/07', count:24,   period:'consulate' , notes:"Napoleon visited Venice in December 1807, inspecting the Adriatic fleet. He had ceded Venice to Austria at Campo Formio in 1797 and taken it back after Austerlitz in 1805." },
+  { name:'Liegnitz',       lat:51.207, lng:16.162, first:'1813/05/28', last:'1813/06/06', count:29,   period:'decline'   , notes:"Napoleon's headquarters during early June 1813 after Bautzen, as he pursued the Allied retreat through Silesia before the armistice." },
+  // Austria
+  { name:'Schönbrunn',     lat:48.185, lng:16.312, first:'1805/11/14', last:'1809/10/16', count:1340, period:'consulate' },
+  { name:'Ebersdorf',      lat:48.167, lng:16.467, first:'1806/10/10', last:'1809/06/04', count:89,   period:'consulate' , notes:"Napoleon used Ebersdorf, south of Vienna, as his main camp during the Wagram campaign in 1809, preparing the second Danube crossing after the defeat at Aspern-Essling." },
+  { name:'Saint-Pölten',   lat:48.205, lng:15.624, first:'1805/11/12', last:'1809/05/10', count:24,   period:'consulate' },
+  { name:'Linz',           lat:48.306, lng:14.286, first:'1805/11/05', last:'1805/11/09', count:15,   period:'consulate' , notes:"Napoleon occupied Linz in November 1805 during the advance after Ulm, using it as a bridgehead on the road to Vienna." },
+  { name:'Ludwigsburg',    lat:48.896, lng:9.192,  first:'1805/10/02', last:'1809/04/16', count:45,   period:'consulate' },
+  // France (palaces & residences)
+  { name:'Trianon',        lat:48.805, lng:2.120,  first:'1809/11/18', last:'1813/03/23', count:741,  period:'consulate' , notes:"Napoleon used the Grand Trianon at Versailles from 1809, preferring it to the main palace. Many administrative decrees and Continental System measures were managed from here." },
+  { name:'Rambouillet',    lat:48.645, lng:1.831,  first:'1806/05/03', last:'1811/08/13', count:561,  period:'consulate' , notes:"Napoleon used the Chateau de Rambouillet as a hunting retreat and working residence. He passed through on his way to his first abdication in April 1814." },
+  { name:'Compiègne',      lat:49.418, lng:2.826,  first:'1810/03/21', last:'1811/09/18', count:431,  period:'consulate' },
+  { name:'Pont-de-Briques', lat:50.704, lng:1.590, first:'1804/07/20', last:'1805/09/02', count:330,  period:'consulate' , notes:"Napoleon's headquarters near Boulogne during the camp of the Grande Armee, 1804-05. He spent weeks here reviewing troops and planning the invasion of England before pivoting east against Austria." },
+  { name:'Gênes',          lat:44.407, lng:8.934,  first:'1805/07/01', last:'1805/07/05', count:18,   period:'consulate' },
+  { name:'Bordeaux',       lat:44.837, lng:-0.580, first:'1808/04/05', last:'1808/08/03', count:61,   period:'consulate' , notes:"Napoleon passed through Bordeaux in April 1808 on his way to the Bayonne conference. A key Atlantic port under the Continental System." },
+  { name:'Ostende',        lat:51.229, lng:2.912,  first:'1803/07/10', last:'1811/09/24', count:41,   period:'consulate' , notes:"Napoleon inspected Ostend as part of his survey of the Channel coast defences and examined the port's role in the Continental System." },
+  { name:'Dunkerque',      lat:51.035, lng:2.377,  first:'1798/02/12', last:'1810/05/22', count:28,   period:'consulate' , notes:"Napoleon visited Dunkirk during his inspection of the Channel coast defences and reviewed the port's naval installations." },
+  { name:'Le Havre',       lat:49.494, lng:0.107,  first:'1802/11/06', last:'1810/05/29', count:37,   period:'consulate' , notes:"Napoleon inspected Le Havre in November 1802, reviewing the port's role in Atlantic trade and its integration into the Continental System." },
+  { name:'Lille',          lat:50.630, lng:3.057,  first:'1803/07/07', last:'1810/05/23', count:34,   period:'consulate' },
+  { name:'Toulouse',       lat:43.605, lng:1.444,  first:'1808/07/25', last:'1808/07/28', count:25,   period:'consulate' , notes:"Napoleon passed through Toulouse in July 1808 on his way south to the Spanish frontier for the fateful Bayonne conference." },
+  { name:'Aix-la-Chapelle',lat:50.776, lng:6.084,  first:'1804/09/03', last:'1804/09/11', count:51,   period:'consulate' , notes:"Napoleon visited Aachen in September 1804, making a deliberate pilgrimage to Charlemagne's capital to emphasise the imperial continuity he claimed to embody." },
+  { name:'Cologne',        lat:50.938, lng:6.960,  first:'1804/09/14', last:'1811/11/06', count:20,   period:'consulate' , notes:"Napoleon visited Cologne in September 1804, incorporating the Rhineland into the French Empire. He inspected the unfinished Gothic cathedral and attended mass." },
+  { name:'Laeken',         lat:50.885, lng:4.360,  first:'1810/04/30', last:'1810/05/16', count:30,   period:'consulate' , notes:"Napoleon and Marie-Louise stayed at the Chateau de Laeken near Brussels in May 1810 during their tour of the new imperial departments in the Low Countries." },
+  // Italy
+  { name:'Vérone',         lat:45.438, lng:10.992, first:'1796/06/03', last:'1805/06/16', count:177,  period:'italy'     },
+  { name:'Stupinigi',      lat:44.994, lng:7.594,  first:'1805/04/20', last:'1805/04/29', count:72,   period:'consulate' , notes:"Napoleon stayed at the royal hunting lodge of Stupinigi near Turin in April 1805 before his coronation as King of Italy in Milan." },
+  { name:'Turin',          lat:45.071, lng:7.687,  first:'1807/12/27', last:'1807/12/28', count:14,   period:'consulate' , notes:"Napoleon visited Turin briefly in December 1807, inspecting the Piedmontese departments of the Empire and reviewing the administration." },
+  { name:'Modène',         lat:44.647, lng:10.925, first:'1796/06/19', last:'1805/06/25', count:24,   period:'italy'     },
+  { name:'Plaisance',      lat:45.052, lng:9.693,  first:'1796/05/07', last:'1805/06/28', count:20,   period:'italy'     , notes:"Napoleon used Piacenza as a logistical hub during the Italian campaign in 1796 and as part of the Kingdom of Italy under his stepson Eugene." },
+  // Egypt
+  { name:'Gizeh',          lat:30.013, lng:31.213, first:'1798/07/22', last:'1799/07/15', count:28,   period:'egypt'     , notes:"Napoleon established camps near Giza during the Egyptian campaign. The Institut d'Egypte made extensive surveys and drawings of the Pyramids and surrounding monuments." },
+  // Elba
+  { name:'La Madone',      lat:42.840, lng:10.290, first:'1814/08/23', last:'1814/11/04', count:41,   period:'decline'   , notes:"Napoleon toured his Elba territory from this elevated point, planning improvements to the island's economy and fortifications while secretly preparing his return to France." },
+  { name:'Longone',        lat:42.773, lng:10.407, first:'1814/09/06', last:'1814/09/19', count:41,   period:'decline'   , notes:"Napoleon visited Porto Longone on Elba's south coast during his exile, inspecting the garrison and harbour of this small fortified town." },
+  { name:'Longwood',      lat:-15.951, lng:-5.689, first:'1815/12/12', last:'1821/05/05', count:30,  period:'decline'   , notes:"Napoleon's final residence on Saint Helena, a damp windswept house on a remote plateau. He spent six years here dictating his memoirs and shaping the Napoleonic legend for posterity." },
+
+  // Spain (1808)
+  { name:'Bayonne',      lat:43.493, lng:-1.474,  first:'1808/04/15', last:'1808/11/04', count:1044, period:'consulate' , notes:"Napoleon summoned the Spanish Bourbons to Bayonne in 1808, forcing both Charles IV and Ferdinand VII to abdicate. He placed his brother Joseph on the Spanish throne from here. Over 1,000 letters written here." },
+  { name:'Marracq',      lat:43.480, lng:-1.510,  first:'1808/04/26', last:'1808/07/19', count:12,   period:'consulate' , notes:"The Chateau de Marracq near Bayonne was Napoleon's residence during the extraordinary Bayonne conference of April-June 1808 where he engineered the transfer of the Spanish crown." },
+  { name:'Vitoria',      lat:42.847, lng:-2.673,  first:'1808/11/06', last:'1808/11/10', count:31,   period:'consulate' , notes:"Napoleon passed through Vitoria in November 1808 at the head of the Grande Armee entering Spain. The city later became the site of Wellington's decisive victory over Joseph Bonaparte in 1813." },
+  { name:'Tolosa',       lat:43.132, lng:-2.079,  first:'1808/11/04', last:'1808/11/06', count:8,    period:'consulate' },
+  { name:'Burgos',       lat:42.344, lng:-3.700,  first:'1808/11/11', last:'1808/11/22', count:129,  period:'consulate' , notes:"Napoleon's primary Spanish headquarters in November 1808. From Burgos he directed the rapid campaign that shattered the Spanish armies and opened the road to Madrid." },
+  { name:'Aranda',       lat:41.669, lng:-3.689,  first:'1808/11/23', last:'1808/11/29', count:72,   period:'consulate' , notes:"A staging point on Napoleon's march south from Burgos towards Madrid in November 1808 during the lightning Spanish campaign." },
+  { name:'Buitrago',     lat:40.997, lng:-3.629,  first:'1808/11/30', last:'1808/11/30', count:2,    period:'consulate' },
+  { name:'Chamartin',    lat:40.471, lng:-3.677,  first:'1808/12/05', last:'1808/12/22', count:89,   period:'consulate' , notes:"Napoleon established headquarters at the Chateau de Chamartin north of Madrid in December 1808, governing occupied Spain and issuing his reforming decrees abolishing feudalism and the Inquisition." },
+  { name:'Madrid',       lat:40.416, lng:-3.703,  first:'1808/12/04', last:'1808/12/22', count:102,  period:'consulate' , notes:"Napoleon entered Madrid on 4 December 1808. He abolished the Inquisition, reduced the number of convents and proclaimed equality before the law — reforms the Spanish people never accepted." },
+  { name:'Tordesillas',  lat:41.502, lng:-5.000,  first:'1808/12/26', last:'1808/12/27', count:2,    period:'consulate' },
+  { name:'Valladolid',   lat:41.652, lng:-4.724,  first:'1808/01/07', last:'1809/03/06', count:178,  period:'consulate' , notes:"Napoleon's forward headquarters in January 1809 during the pursuit of Sir John Moore's British army towards Corunna. He left Spain from Valladolid, recalled to deal with Austria." },
+  { name:'Benavente',    lat:42.003, lng:-5.680,  first:'1808/12/31', last:'1809/01/06', count:66,   period:'consulate' , notes:"Napoleon's headquarters in early January 1809 as he pressed the pursuit of Moore's retreating British army towards the coast. French cavalry were defeated here by British hussars." },
+];
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BATTLES — Napoleon's battles by role, with result
+// roles: 'officer' | 'consul' | 'emperor'
+// result: 'victory' | 'defeat' | 'draw'
+// ══════════════════════════════════════════════════════════════════════════════
+const CAMPAIGNS = [
+  { id:"early",    name:"Early Career (1793-1795)",      color:"#00CFFF" },
+  { id:"italy",    name:"Italian Campaign (1796-1797)",  color:"#FFD166" },
+  { id:"egypt",    name:"Egyptian Campaign (1798-1799)", color:"#FF9F1C" },
+  { id:"marengo",  name:"Marengo Campaign (1800)",       color:"#06D6A0" },
+  { id:"ulm",      name:"Ulm-Austerlitz (1805)",         color:"#FFE500" },
+  { id:"prussia",  name:"Prussian-Polish Campaign (1806-1807)", color:"#FF7F51" },
+  { id:"spain",    name:"Spanish Campaign (1808)",       color:"#FF2D55" },
+  { id:"austria",  name:"Austrian Campaign (1809)",      color:"#FFAA00" },
+  { id:"russia",   name:"Russian Campaign (1812)",       color:"#FF3860" },
+  { id:"germany",  name:"German Campaign (1813)",        color:"#B388FF" },
+  { id:"france",   name:"Campaign of France (1814)",     color:"#4FC3F7" },
+  { id:"100days",  name:"Hundred Days (1815)",           color:"#FFFFFF" },
+];
+
+const BATTLES = [
+  { name:"Siege of Toulon",          date:"1793-08-29", lat:43.126, lng:5.928,   role:"officer", result:"victory", campaign:"early",   notes:"Napoleon commands the artillery. Capture of Fort L'Eguillette forces the British fleet to evacuate. Promoted to general de brigade." },
+  { name:"Saorgio",                  date:"1794-04-24", lat:43.980, lng:7.567,   role:"officer", result:"victory", campaign:"early",   notes:"French forces seize the Alpine pass of Saorgio, opening the route into Piedmont." },
+  { name:"First Dego",               date:"1794-09-21", lat:44.453, lng:8.311,   role:"officer", result:"victory", campaign:"early",   notes:"First action at Dego; French secure control of the Ligurian Alps." },
+  { name:"Montenotte",               date:"1796-04-11", lat:44.397, lng:8.267,   role:"officer", result:"victory", campaign:"italy",   notes:"First major victory of the Italian campaign. Austro-Piedmontese forces split by Napoleon operating on interior lines." },
+  { name:"Millesimo",                date:"1796-04-13", lat:44.289, lng:8.207,   role:"officer", result:"victory", campaign:"italy",   notes:"Piedmontese army isolated and defeated, severing the coalition with Austria." },
+  { name:"Second Dego",              date:"1796-04-14", lat:44.455, lng:8.313,   role:"officer", result:"victory", campaign:"italy",   notes:"Austrians retake then lose Dego again. French control of the Alpine passes secured." },
+  { name:"Ceva",                     date:"1796-04-16", lat:44.387, lng:7.956,   role:"officer", result:"victory", campaign:"italy",   notes:"Piedmontese rearguard defeated; armistice of Cherasco shortly follows." },
+  { name:"Mondovi",                  date:"1796-04-21", lat:44.387, lng:7.820,   role:"officer", result:"victory", campaign:"italy",   notes:"Decisive defeat of Piedmont. Armistice of Cherasco signed; Piedmont exits the war." },
+  { name:"Fombio",                   date:"1796-05-07", lat:45.133, lng:9.467,   role:"officer", result:"victory", campaign:"italy",   notes:"Austrian rearguard driven across the Po; French advance on Milan accelerates." },
+  { name:"Lodi",                     date:"1796-05-10", lat:45.310, lng:9.504,   role:"officer", result:"victory", campaign:"italy",   notes:"Napoleon personally leads the charge across the bridge. Hailed the Little Corporal by his troops. Milan falls." },
+  { name:"Borghetto",                date:"1796-05-30", lat:45.504, lng:10.717,  role:"officer", result:"victory", campaign:"italy",   notes:"Austrian rearguard forced back at the Mincio crossing; siege of Mantua begins." },
+  { name:"Siege of Mantua",          date:"1796-07-04", lat:45.156, lng:10.791,  role:"officer", result:"victory", campaign:"italy",   notes:"Prolonged seven-month siege. Falls February 1797 after four Austrian relief attempts are broken." },
+  { name:"Lonato",                   date:"1796-08-03", lat:45.461, lng:10.487,  role:"officer", result:"victory", campaign:"italy",   notes:"Wurmser's first relief column defeated. Napoleon uses interior lines to defeat Austrians in detail." },
+  { name:"Castiglione",              date:"1796-08-05", lat:45.383, lng:10.411,  role:"officer", result:"victory", campaign:"italy",   notes:"Wurmser's main force routed. Napoleon feigns retreat to lure the Austrians into a trap." },
+  { name:"Rovereto",                 date:"1796-09-04", lat:45.890, lng:11.036,  role:"officer", result:"victory", campaign:"italy",   notes:"Davidovich's corps driven northward; Wurmser's retreat towards Mantua cut off." },
+  { name:"Bassano",                  date:"1796-09-08", lat:45.765, lng:11.735,  role:"officer", result:"victory", campaign:"italy",   notes:"Wurmser's army split and routed. The Austrian general flees into Mantua with remnants." },
+  { name:"San Giorgio",              date:"1796-09-14", lat:45.141, lng:10.836,  role:"officer", result:"victory", campaign:"italy",   notes:"Wurmser's sortie from Mantua repulsed. The garrison remains blockaded." },
+  { name:"Second Bassano",           date:"1796-11-06", lat:45.767, lng:11.737,  role:"officer", result:"defeat",  campaign:"italy",   notes:"Alvinczy's advance guard pushes back French forces; a setback before Caldiero." },
+  { name:"Caldiero",                 date:"1796-11-12", lat:45.362, lng:11.188,  role:"officer", result:"defeat",  campaign:"italy",   notes:"Napoleon's only reverse in the Italian campaign. Alvinczy holds firm. Arcole follows three days later." },
+  { name:"Arcole",                   date:"1796-11-15", lat:45.356, lng:11.285,  role:"officer", result:"victory", campaign:"italy",   notes:"Three-day battle in the marshes. Napoleon seizes the standard at the bridge. Alvinczy's third relief attempt fails." },
+  { name:"Rivoli",                   date:"1797-01-14", lat:45.572, lng:10.797,  role:"officer", result:"victory", campaign:"italy",   notes:"Decisive victory. Last Austrian attempt to relieve Mantua crushed. Mantua surrenders 2 February 1797." },
+  { name:"La Favorita",              date:"1797-01-16", lat:45.166, lng:10.812,  role:"officer", result:"victory", campaign:"italy",   notes:"Provera's last relief column destroyed outside Mantua. The fortress falls days later." },
+  { name:"Valvasone",                date:"1797-03-16", lat:45.840, lng:12.848,  role:"officer", result:"victory", campaign:"italy",   notes:"Archduke Charles pushed back; French cross the Tagliamento and march on Vienna." },
+  { name:"Tarvis",                   date:"1797-03-21", lat:46.503, lng:13.586,  role:"officer", result:"victory", campaign:"italy",   notes:"Charles's rearguard defeated in the Julian Alps; Leoben armistice follows in April." },
+  { name:"Invasion of Malta",        date:"1798-06-10", lat:35.899, lng:14.514,  role:"officer", result:"victory", campaign:"egypt",   notes:"Knights of Malta capitulate after token resistance. Napoleon takes the island en route to Egypt." },
+  { name:"Alexandria",               date:"1798-07-02", lat:31.200, lng:29.919,  role:"officer", result:"victory", campaign:"egypt",   notes:"Alexandria taken by assault; French establish their Egyptian base." },
+  { name:"Shubra Khit",              date:"1798-07-13", lat:30.120, lng:31.236,  role:"officer", result:"victory", campaign:"egypt",   notes:"First engagement against the Mamelukes on the Nile. French infantry squares repel repeated cavalry charges." },
+  { name:"Battle of the Pyramids",   date:"1798-07-21", lat:30.020, lng:31.133,  role:"officer", result:"victory", campaign:"egypt",   notes:"Mameluke cavalry shattered by French squares. Cairo taken. Napoleon: Forty centuries look down upon you!" },
+  { name:"Cairo Revolt",             date:"1798-10-21", lat:30.044, lng:31.240,  role:"officer", result:"victory", campaign:"egypt",   notes:"Egyptian uprising suppressed with artillery. French control of Cairo re-established." },
+  { name:"Siege of El-Arish",        date:"1799-01-11", lat:31.131, lng:34.150,  role:"officer", result:"victory", campaign:"egypt",   notes:"Ottoman-held fort taken; gateway to Syria opened for the French advance." },
+  { name:"Siege of Jaffa",           date:"1799-03-03", lat:32.050, lng:34.759,  role:"officer", result:"victory", campaign:"egypt",   notes:"City taken by storm. Controversial execution of prisoners follows. Plague breaks out in the army." },
+  { name:"Siege of Acre",            date:"1799-03-20", lat:32.933, lng:35.083,  role:"officer", result:"defeat",  campaign:"egypt",   notes:"Two-month siege fails. Plague, British naval support and engineering defeat Napoleon. First major strategic failure." },
+  { name:"Mount Tabor",              date:"1799-04-16", lat:32.687, lng:35.393,  role:"officer", result:"victory", campaign:"egypt",   notes:"Ottoman relief force destroyed at the foot of Mount Tabor after a French forced march." },
+  { name:"Abukir",                   date:"1799-07-25", lat:31.326, lng:30.066,  role:"officer", result:"victory", campaign:"egypt",   notes:"Ottoman landing force of 15,000 annihilated; many driven into the sea. Napoleon's last Egyptian battle." },
+  { name:"Siege of Fort Bard",       date:"1800-05-14", lat:45.604, lng:7.738,   role:"consul",  result:"victory", campaign:"marengo", notes:"Small Austrian fort delays the army crossing the Alps. Artillery dragged past at night on straw." },
+  { name:"Chiusella River",          date:"1800-05-26", lat:45.500, lng:7.900,   role:"consul",  result:"draw",    campaign:"marengo", notes:"Engagement at the Chiusella River; ambiguous outcome as French press on toward Marengo." },
+  { name:"Turbigo",                  date:"1800-05-31", lat:45.546, lng:8.736,   role:"consul",  result:"victory", campaign:"marengo", notes:"French cross the Ticino at Turbigo, threatening Melas's communications with Austria." },
+  { name:"Marengo",                  date:"1800-06-14", lat:44.921, lng:8.621,   role:"consul",  result:"victory", campaign:"marengo", notes:"Near-defeat reversed by Desaix's timely charge. Desaix killed. French control of Italy secured." },
+  { name:"Ulm",                      date:"1805-10-15", lat:48.402, lng:9.997,   role:"emperor", result:"victory", campaign:"ulm",     notes:"Entire Austrian army of 30,000 surrounded without major pitched battle. Napoleon's strategy of manoeuvre perfected." },
+  { name:"Austerlitz",               date:"1805-12-02", lat:49.154, lng:16.877,  role:"emperor", result:"victory", campaign:"ulm",     notes:"Napoleon's greatest victory. Allied centre drawn off the Pratzen heights. Battle of three emperors. 36,000 Allied casualties." },
+  { name:"Jena",                     date:"1806-10-14", lat:50.927, lng:11.586,  role:"emperor", result:"victory", campaign:"prussia", notes:"Prussian army shattered in a single day alongside Davout's simultaneous victory at Auerstedt. Berlin falls within weeks." },
+  { name:"Capture of Berlin",        date:"1806-10-24", lat:52.520, lng:13.405,  role:"emperor", result:"victory", campaign:"prussia", notes:"Napoleon enters Berlin in triumph. The Prussian state collapses. Continental System declared." },
+  { name:"Czarnowo",                 date:"1806-12-23", lat:52.449, lng:20.906,  role:"emperor", result:"victory", campaign:"prussia", notes:"Russian rearguard driven back across the Ukra River. French advance into Poland continues." },
+  { name:"Allenstein",               date:"1807-02-03", lat:53.776, lng:20.476,  role:"emperor", result:"victory", campaign:"prussia", notes:"Bennigsen outmanoeuvred; French occupy Allenstein and press the Russian retreat." },
+  { name:"Eylau",                    date:"1807-02-07", lat:54.394, lng:20.639,  role:"emperor", result:"draw",    campaign:"prussia", notes:"Bloody inconclusive battle in blizzard conditions. Murat's 80-squadron charge saves the day. 25,000 casualties each side." },
+  { name:"Friedland",                date:"1807-06-14", lat:54.440, lng:21.016,  role:"emperor", result:"victory", campaign:"prussia", notes:"Russians trapped with the Alle River at their back. Devastating French artillery. Treaty of Tilsit follows." },
+  { name:"Somosierra",               date:"1808-11-30", lat:41.094, lng:-3.581,  role:"emperor", result:"victory", campaign:"spain",   notes:"Polish light cavalry charge a mountain pass against 16 cannon. Road to Madrid opened in minutes." },
+  { name:"Siege of Madrid",          date:"1808-12-04", lat:40.416, lng:-3.703,  role:"emperor", result:"victory", campaign:"spain",   notes:"Madrid capitulates. Napoleon abolishes the Inquisition and feudal privileges by decree." },
+  { name:"Teugen-Hausen",            date:"1809-04-19", lat:48.880, lng:12.060,  role:"emperor", result:"victory", campaign:"austria", notes:"Davout's corps holds against Archduke Charles; Napoleon arrives to coordinate the counter-offensive." },
+  { name:"Abensberg",                date:"1809-04-20", lat:48.794, lng:11.857,  role:"emperor", result:"victory", campaign:"austria", notes:"Austrian southern wing under Hiller shattered. Napoleon personally directs the breakthrough." },
+  { name:"Landshut",                 date:"1809-04-21", lat:48.538, lng:12.152,  role:"emperor", result:"victory", campaign:"austria", notes:"Hiller's corps routed; massive supply depot captured. Napoleon believes he has destroyed the main Austrian army." },
+  { name:"Eckmuhl",                  date:"1809-04-22", lat:48.900, lng:12.167,  role:"emperor", result:"victory", campaign:"austria", notes:"Archduke Charles defeated. Davout's heroic defensive stand rewarded by Napoleon's flanking march." },
+  { name:"Ratisbon",                 date:"1809-04-23", lat:49.022, lng:12.097,  role:"emperor", result:"victory", campaign:"austria", notes:"Napoleon wounded in the foot — first time hit in battle. City stormed the same day." },
+  { name:"Aspern-Essling",           date:"1809-05-21", lat:48.201, lng:16.511,  role:"emperor", result:"defeat",  campaign:"austria", notes:"First defeat in a pitched battle. Lannes mortally wounded. Danube crossing fails; Napoleon shaken." },
+  { name:"Wagram",                   date:"1809-07-05", lat:48.306, lng:16.563,  role:"emperor", result:"victory", campaign:"austria", notes:"Massive two-day battle. Macdonald's column breaks the Austrian centre. Treaty of Schonbrunn ends the war." },
+  { name:"Znaim",                    date:"1809-07-10", lat:48.856, lng:16.050,  role:"emperor", result:"draw",    campaign:"austria", notes:"Armistice agreed mid-battle; Austria sues for peace before the engagement concludes." },
+  { name:"Vitebsk",                  date:"1812-07-26", lat:55.193, lng:30.206,  role:"emperor", result:"victory", campaign:"russia",  notes:"Russian rearguard defeated; Napoleon occupies Vitebsk but the main Russian army escapes again." },
+  { name:"Smolensk",                 date:"1812-08-16", lat:54.790, lng:32.050,  role:"emperor", result:"victory", campaign:"russia",  notes:"Russians withdraw and burn the city rather than defend it. A pyrrhic strategic result." },
+  { name:"Shevardino",               date:"1812-09-05", lat:55.510, lng:35.790,  role:"emperor", result:"victory", campaign:"russia",  notes:"Russian advance redoubt stormed the day before Borodino; French secure their attack positions." },
+  { name:"Borodino",                 date:"1812-09-07", lat:55.524, lng:35.819,  role:"emperor", result:"draw",    campaign:"russia",  notes:"Bloodiest single day of the Napoleonic Wars. ~70,000 combined casualties. Napoleon refuses to commit the Guard." },
+  { name:"Mozhaysk",                 date:"1812-09-08", lat:55.514, lng:36.034,  role:"emperor", result:"victory", campaign:"russia",  notes:"Russian rearguard pushed out of Mozhaysk; Moscow is now open." },
+  { name:"Maloyaroslavets",          date:"1812-10-24", lat:55.012, lng:36.461,  role:"emperor", result:"draw",    campaign:"russia",  notes:"Fierce urban battle. French hold the town but Napoleon decides to retreat on the old Smolensk road — the fatal decision." },
+  { name:"Krasnoi",                  date:"1812-11-15", lat:54.420, lng:31.981,  role:"emperor", result:"defeat",  campaign:"russia",  notes:"Napoleon leads the Old Guard to rescue isolated corps, but the army's disintegration accelerates." },
+  { name:"Berezina",                 date:"1812-11-26", lat:54.055, lng:28.210,  role:"emperor", result:"draw",    campaign:"russia",  notes:"Oudinot and Victor hold the bridgehead; heroic engineers build bridges under fire. Thousands drown or are captured." },
+  { name:"Lutzen",                   date:"1813-05-02", lat:51.262, lng:12.139,  role:"emperor", result:"victory", campaign:"germany", notes:"First major victory after Russia. Allied cavalry superiority prevents decisive exploitation." },
+  { name:"Bautzen",                  date:"1813-05-20", lat:51.181, lng:14.433,  role:"emperor", result:"victory", campaign:"germany", notes:"Ney fails to cut the Allied retreat; strategic victory denied. Armistice of Plaeswitz follows." },
+  { name:"Reichenbach",              date:"1813-05-22", lat:50.890, lng:15.156,  role:"emperor", result:"victory", campaign:"germany", notes:"Rearguard action; Duroc mortally wounded at Napoleon's side by a cannonball." },
+  { name:"Dresden",                  date:"1813-08-26", lat:51.050, lng:13.748,  role:"emperor", result:"victory", campaign:"germany", notes:"Last great Napoleonic victory. Moreau, his former rival, killed by a French cannon ball." },
+  { name:"Leipzig",                  date:"1813-10-16", lat:51.340, lng:12.375,  role:"emperor", result:"defeat",  campaign:"germany", notes:"Battle of the Nations. Outnumbered 3-to-1. Premature destruction of the Elster bridge traps thousands. Empire collapses." },
+  { name:"Hanau",                    date:"1813-10-30", lat:50.130, lng:8.922,   role:"emperor", result:"victory", campaign:"germany", notes:"Bavarian Army of the Allies blocks the retreat. Napoleon brushes them aside and crosses the Rhine." },
+  { name:"Brienne",                  date:"1814-01-29", lat:48.394, lng:4.526,   role:"emperor", result:"draw",    campaign:"france",  notes:"Napoleon attacks Blucher at his own childhood school. Blucher nearly captured at sword-point in the dark." },
+  { name:"La Rothiere",              date:"1814-02-01", lat:48.371, lng:4.682,   role:"emperor", result:"defeat",  campaign:"france",  notes:"Allied armies reunite and overwhelm Napoleon. The defeat triggers the miraculous Six Days Campaign." },
+  { name:"Champaubert",              date:"1814-02-10", lat:48.751, lng:3.733,   role:"emperor", result:"victory", campaign:"france",  notes:"Opening blow of the Six Days Campaign. Olsufiev's corps destroyed. Napoleon strikes each Allied army in turn." },
+  { name:"Montmirail",               date:"1814-02-11", lat:48.869, lng:3.524,   role:"emperor", result:"victory", campaign:"france",  notes:"Sacken and Yorck defeated in detail. Napoleon at his most brilliant with minimal forces." },
+  { name:"Chateau-Thierry",          date:"1814-02-12", lat:49.046, lng:3.406,   role:"emperor", result:"victory", campaign:"france",  notes:"Yorck's rearguard defeated. Allied forces pushed back across the Marne." },
+  { name:"Vauchamps",                date:"1814-02-14", lat:48.836, lng:3.694,   role:"emperor", result:"victory", campaign:"france",  notes:"Blucher lured into a trap. Cavalry inflict heavy losses on retreating Prussians." },
+  { name:"Mormant",                  date:"1814-02-17", lat:48.602, lng:2.895,   role:"emperor", result:"victory", campaign:"france",  notes:"Schwarzenberg's advance guard defeated. The Six Days Campaign continues south of the Seine." },
+  { name:"Montereau",                date:"1814-02-18", lat:48.382, lng:2.950,   role:"emperor", result:"victory", campaign:"france",  notes:"Napoleon personally directs the artillery. Schwarzenberg pushed back south of the Seine." },
+  { name:"Berry-au-Bac",             date:"1814-03-05", lat:49.388, lng:3.896,   role:"emperor", result:"victory", campaign:"france",  notes:"Blucher's advance blocked at the Aisne; Napoleon manoeuvres to attack his flank." },
+  { name:"Craonne",                  date:"1814-03-07", lat:49.443, lng:3.779,   role:"emperor", result:"victory", campaign:"france",  notes:"Ney and Victor storm the Chemin des Dames plateau. Costly French victory; the Guard takes heavy losses." },
+  { name:"Laon",                     date:"1814-03-09", lat:49.563, lng:3.624,   role:"emperor", result:"defeat",  campaign:"france",  notes:"Marmont's corps surprised at night; Napoleon forced to withdraw. A rare failure of intelligence." },
+  { name:"Reims",                    date:"1814-03-12", lat:49.258, lng:4.032,   role:"emperor", result:"victory", campaign:"france",  notes:"Saint-Priest's corps surprised and driven from Reims. Napoleon restores his communications." },
+  { name:"Arcis-sur-Aube",           date:"1814-03-20", lat:48.533, lng:4.133,   role:"emperor", result:"defeat",  campaign:"france",  notes:"Napoleon engages vastly superior forces to draw the Allies away from Paris. The gamble fails." },
+  { name:"Saint-Dizier",             date:"1814-03-26", lat:48.638, lng:4.951,   role:"emperor", result:"victory", campaign:"france",  notes:"Napoleon's last offensive action of the First Empire. He learns too late the Allies are marching on Paris." },
+  { name:"Ligny",                    date:"1815-06-16", lat:50.463, lng:4.592,   role:"emperor", result:"victory", campaign:"100days", notes:"Last victory. Blucher defeated and unhorsed. But Ney fails at Quatre-Bras and the Prussians escape intact." },
+  { name:"Waterloo",                 date:"1815-06-18", lat:50.680, lng:4.412,   role:"emperor", result:"defeat",  campaign:"100days", notes:"Final defeat. Prussian arrival decides the day. The Guard retreats. Napoleon abdicates four days later." },
+];
+
+
+const BATTLE_RESULT_COLORS = {
+  victory: '#7EC8A0',
+  defeat:  '#CF6679',
+  draw:    '#9B8EC4',
+};
+
+const PERIOD_COLORS = {};
+PERIODS.forEach(p => PERIOD_COLORS[p.id] = p.color);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// APP STATE
+// ══════════════════════════════════════════════════════════════════════════════
+let activePeriod = 'all';
+let selectedLoc = null;
+let markers = {};
+let map;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INIT MAP
+// ══════════════════════════════════════════════════════════════════════════════
+function initMap() {
+  map = L.map('map', {
+    center: [42, 18],
+    zoom: 4,
+    zoomControl: false,
+    attributionControl: true
+  });
+
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '&copy; ESRI',
+    maxZoom: 16
+  }).addTo(map);
+
+  L.control.zoom({ position: 'topleft' }).addTo(map);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MARKERS
+// ══════════════════════════════════════════════════════════════════════════════
+function getMarkerSize(count) {
+  if (count >= 1000) return 18;
+  if (count >= 200)  return 14;
+  if (count >= 50)   return 11;
+  if (count >= 20)   return 9;
+  return 7;
+}
+
+function createMarker(loc) {
+  const color = PERIOD_COLORS[loc.period];
+  const size = getMarkerSize(loc.count);
+  const isHighlight = loc.count >= 200;
+
+  const html = `
+    <div style="position:relative;width:${size*2}px;height:${size*2}px;">
+      ${isHighlight ? `<div class="pulse-ring" style="width:${size*2}px;height:${size*2}px;top:0;left:0;border:2px solid ${color};opacity:0.5;"></div>` : ''}
+      <div style="
+        width:${size*2}px;height:${size*2}px;
+        background:${color};
+        border-radius:50%;
+        border:2px solid rgba(255,255,255,0.6);
+        box-shadow:0 0 8px ${color}88;
+        position:relative;z-index:1;
+      "></div>
+    </div>
+  `;
+
+  const icon = L.divIcon({
+    html,
+    className: 'custom-marker',
+    iconSize: [size*2, size*2],
+    iconAnchor: [size, size],
+  });
+
+  const marker = L.marker([loc.lat, loc.lng], { icon })
+    .addTo(map)
+    .on('click', () => showInfo(loc));
+
+  // Tooltip
+  marker.bindTooltip(`<strong>${loc.name}</strong><br>${loc.count} letters`, {
+    className: 'custom-tooltip',
+    direction: 'top',
+    offset: [0, -size]
+  });
+
+  return marker;
+}
+
+function addTooltipStyle() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .custom-tooltip {
+      background: #0E2E3A !important;
+      border: 1px solid #C9973D !important;
+      color: #F5EDD8 !important;
+      font-family: 'GFS Didot', serif;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 2px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5) !important;
+    }
+    .custom-tooltip::before { display:none !important; }
+  `;
+  document.head.appendChild(style);
+}
+
+function renderMarkers() {
+  // Clear existing
+  Object.values(markers).forEach(m => map.removeLayer(m));
+  markers = {};
+
+  const filtered = activePeriod === 'all'
+    ? LOCATIONS
+    : LOCATIONS.filter(l => l.period === activePeriod);
+
+  renderBattleMarkersAndLines();
+
+  filtered.forEach(loc => {
+    // Skip duplicate Paris/Malmaison
+    const key = `${loc.lat},${loc.lng}`;
+    if (loc.name === 'La Malmaison') return; // merged with Malmaison
+    markers[loc.name] = createMarker(loc);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LOCATION LIST
+// ══════════════════════════════════════════════════════════════════════════════
+function renderList() {
+  const filtered = activePeriod === 'all'
+    ? [...LOCATIONS].sort((a,b) => a.first.localeCompare(b.first))
+    : LOCATIONS.filter(l => l.period === activePeriod).sort((a,b) => a.first.localeCompare(b.first));
+
+  // Filter out duplicate
+  const shown = filtered.filter(l => l.name !== 'La Malmaison');
+
+  document.getElementById('list-label').textContent = `Locations (${shown.length})`;
+
+  const container = document.getElementById('location-list');
+  container.innerHTML = '';
+
+  shown.forEach(loc => {
+    const color = PERIOD_COLORS[loc.period];
+    const div = document.createElement('div');
+    div.className = 'loc-item' + (selectedLoc === loc.name ? ' selected' : '');
+    div.innerHTML = `
+      <div class="loc-dot" style="background:${color}"></div>
+      <div class="loc-info">
+        <div class="loc-name">${loc.name}</div>
+        <div class="loc-date">${formatDate(loc.first)}${loc.first !== loc.last ? ' – ' + formatDate(loc.last) : ''}</div>
+      </div>
+      <span class="loc-count">${loc.count >= 1000 ? (loc.count/1000).toFixed(1)+'k' : loc.count}</span>
+    `;
+    div.addEventListener('click', () => {
+      selectLocation(loc);
+    });
+    container.appendChild(div);
+  });
+
+  // Update stats
+  const totalLetters = shown.reduce((s, l) => s + l.count, 0);
+  document.getElementById('stat-locs').textContent = shown.length;
+  document.getElementById('stat-letters').textContent = totalLetters >= 1000 ? Math.round(totalLetters/1000)+'k' : totalLetters;
+  const years = shown.flatMap(l => [
+    parseInt(l.first.split('/')[0]),
+    parseInt(l.last.split('/')[0])
+  ]).filter(Boolean);
+  document.getElementById('stat-years').textContent = years.length ? `${Math.min(...years)}–${Math.max(...years)}` : '—';
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const parts = d.split('/');
+  if (parts.length === 3) {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${months[parseInt(parts[1])-1]} ${parts[0]}`;
+  }
+  return d.split('/')[0];
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SELECTION & INFO CARD
+// ══════════════════════════════════════════════════════════════════════════════
+function selectLocation(loc) {
+  selectedLoc = loc.name;
+  map.flyTo([loc.lat, loc.lng], Math.max(map.getZoom(), 6), { duration: 1.2 });
+  showInfo(loc);
+  renderList(); // re-render to update selected state
+}
+
+function showInfo(loc) {
+  const resultRow2 = document.getElementById('info-result-row');
+  if (resultRow2) resultRow2.style.display = 'none';
+  const periodLabel = PERIODS.find(p => p.id === loc.period)?.label || loc.period;
+  document.getElementById('info-name').textContent = loc.name;
+  document.getElementById('info-date').textContent = `${formatDate(loc.first)} – ${formatDate(loc.last)}`;
+  document.getElementById('info-letters').textContent = loc.count.toLocaleString();
+  document.getElementById('info-period').textContent = periodLabel;
+  document.getElementById('info-first').textContent = loc.first;
+  document.getElementById('info-last').textContent = loc.last;
+  const notesEl = document.getElementById('info-notes');
+  if (notesEl) {
+    if (loc.notes) { notesEl.textContent = loc.notes; notesEl.style.display = 'block'; }
+    else { notesEl.textContent = ''; notesEl.style.display = 'none'; }
+  }
+  document.getElementById('info-card').classList.add('visible');
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PERIOD FILTERS
+// ══════════════════════════════════════════════════════════════════════════════
+function renderPeriodFilters() {
+  const container = document.getElementById('period-filters');
+  container.innerHTML = '';
+  PERIODS.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'period-btn' + (p.id === activePeriod ? ' active' : '');
+    btn.style.borderColor = p.id === 'all' ? '#C9973D' : p.color;
+    if (p.id === activePeriod) btn.style.background = p.color === '#C9973D' ? p.color : p.color;
+    btn.innerHTML = `
+      ${p.id !== 'all' ? `<span class="period-dot" style="background:${p.color}"></span>` : ''}
+      ${p.label}
+    `;
+    btn.addEventListener('click', () => {
+      activePeriod = p.id;
+      selectedLoc = null;
+      document.getElementById('info-card').classList.remove('visible');
+      renderPeriodFilters();
+      renderMarkers();
+      renderList();
+      // Fly to appropriate region
+      const bounds = getFilteredBounds();
+      if (bounds) map.flyToBounds(bounds, { padding:[40,40], duration:1.2 });
+    });
+    container.appendChild(btn);
+  });
+}
+
+function getFilteredBounds() {
+  const locs = activePeriod === 'all'
+    ? LOCATIONS
+    : LOCATIONS.filter(l => l.period === activePeriod);
+
+  // Also include battles for this period
+  const periodYears = PERIODS.find(p => p.id === activePeriod)?.years;
+  const battleLocs = BATTLES.filter(b => {
+    if (!periodYears) return true;
+    const y = parseInt(b.date.split('-')[0]);
+    return y >= periodYears[0] && y <= periodYears[1];
+  });
+
+  const allPoints = [
+    ...locs.map(l => ({ lat: l.lat, lng: l.lng })),
+    ...battleLocs.map(b => ({ lat: b.lat, lng: b.lng })),
+  ];
+  if (!allPoints.length) return null;
+  const lats = allPoints.map(p=>p.lat), lngs = allPoints.map(p=>p.lng);
+  const pad = activePeriod === 'all' ? 3 : 1.5;
+  return [[Math.min(...lats)-pad, Math.min(...lngs)-pad], [Math.max(...lats)+pad, Math.max(...lngs)+pad]];
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LEGEND
+// ══════════════════════════════════════════════════════════════════════════════
+function renderLegend() {
+  const container = document.getElementById('legend-items');
+  PERIODS.filter(p => p.id !== 'all').forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'legend-item';
+    div.innerHTML = `
+      <div class="legend-dot" style="background:${p.color}"></div>
+      <span style="color:rgba(245,237,216,0.75);font-size:11px">${p.label}${p.years ? ` (${p.years[0]}${p.years[1]!==p.years[0]?'–'+p.years[1]:''})` : ''}</span>
+    `;
+    container.appendChild(div);
+  });
+  // Size legend
+  const sizes = document.createElement('div');
+  sizes.style.marginTop = '8px';
+  sizes.innerHTML = `
+    <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#C9973D;margin-bottom:5px">Letters (size)</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:14px;height:14px;background:#888;border-radius:50%;border:1px solid rgba(255,255,255,0.4)"></div>
+        <span style="font-size:9px;color:rgba(245,237,216,0.5)">5+</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:20px;height:20px;background:#888;border-radius:50%;border:1px solid rgba(255,255,255,0.4)"></div>
+        <span style="font-size:9px;color:rgba(245,237,216,0.5)">50+</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:28px;height:28px;background:#888;border-radius:50%;border:1px solid rgba(255,255,255,0.4)"></div>
+        <span style="font-size:9px;color:rgba(245,237,216,0.5)">200+</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="width:36px;height:36px;background:#888;border-radius:50%;border:1px solid rgba(255,255,255,0.4)"></div>
+        <span style="font-size:9px;color:rgba(245,237,216,0.5)">1000+</span>
+      </div>
+    </div>
+  `;
+  container.appendChild(sizes);
+}
+
+
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BATTLE MARKERS & CAMPAIGN LINES
+// ══════════════════════════════════════════════════════════════════════════════
+let battleMarkers = [];
+let campaignLines = [];
+let activeCampaigns = new Set(CAMPAIGNS.map(c => c.id));
+
+function getCampaignColor(id) {
+  return (CAMPAIGNS.find(c => c.id === id) || {}).color || '#C9973D';
+}
+
+function createBattleMarker(battle) {
+  const campColor = getCampaignColor(battle.campaign);
+  const resultColor = { victory:'#7EC8A0', defeat:'#CF6679', draw:'#9B8EC4' }[battle.result];
+  const roleLabel = { officer:'General', consul:'First Consul', emperor:'Emperor' }[battle.role];
+  const resultLabel = { victory:'Victory', defeat:'Defeat', draw:'Drawn' }[battle.result];
+
+  const svgIcon = `
+    <div style="position:relative;width:22px;height:22px;cursor:pointer;">
+      <svg viewBox="0 0 22 22" width="22" height="22" xmlns="http://www.w3.org/2000/svg"
+           style="filter:drop-shadow(0 0 3px ${campColor}99)">
+        <circle cx="11" cy="11" r="10" fill="${resultColor}" opacity="0.18"/>
+        <circle cx="11" cy="11" r="10" fill="none" stroke="${resultColor}" stroke-width="1.2" opacity="0.7"/>
+        <line x1="5" y1="5" x2="17" y2="17" stroke="${campColor}" stroke-width="2" stroke-linecap="round"/>
+        <line x1="17" y1="5" x2="5" y2="17" stroke="${campColor}" stroke-width="2" stroke-linecap="round"/>
+        <line x1="4" y1="8"  x2="8"  y2="4"  stroke="${campColor}" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="18" y1="8" x2="14" y2="4"  stroke="${campColor}" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>`;
+
+  const icon = L.divIcon({
+    html: svgIcon,
+    className: 'battle-marker',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+
+  const marker = L.marker([battle.lat, battle.lng], { icon, zIndexOffset:500 })
+    .addTo(map)
+    .on('click', () => showBattleInfo(battle))
+    .bindTooltip(`<strong>${battle.name}</strong><br>${battle.date} · ${resultLabel}`, {
+      className: 'custom-tooltip', direction:'top', offset:[0,-11]
+    });
+  return marker;
+}
+
+function showBattleInfo(battle) {
+  const campName = (CAMPAIGNS.find(c => c.id === battle.campaign) || {}).name || battle.campaign;
+  const roleLabel = { officer:'General', consul:'First Consul', emperor:'Emperor' }[battle.role];
+  const resultLabel = { victory:'Victory', defeat:'Defeat', draw:'Drawn' }[battle.result];
+
+  document.getElementById('info-name').textContent = battle.name;
+  document.getElementById('info-date').textContent = battle.date;
+  document.getElementById('info-letters').textContent = '— (battle)';
+  document.getElementById('info-period').textContent = roleLabel + ' · ' + campName;
+  document.getElementById('info-first').textContent = battle.date;
+  document.getElementById('info-last').textContent = battle.date;
+
+  const resultRow = document.getElementById('info-result-row');
+  if (resultRow) {
+    resultRow.style.display = 'flex';
+    resultRow.className = 'info-stat battle-result-' + battle.result;
+    document.getElementById('info-result-val').textContent = resultLabel;
+  }
+  const notesEl = document.getElementById('info-notes');
+  if (notesEl) { notesEl.style.display = 'block'; notesEl.textContent = battle.notes; }
+  document.getElementById('info-card').classList.add('visible');
+}
+
+function renderBattleMarkersAndLines() {
+  // Clear
+  battleMarkers.forEach(m => map.removeLayer(m));
+  campaignLines.forEach(l => map.removeLayer(l));
+  battleMarkers = [];
+  campaignLines = [];
+
+  // Filter by active campaigns AND active letter period
+  const periodYears = PERIODS.find(p => p.id === activePeriod)?.years;
+
+  // Draw campaign lines first (under markers)
+  CAMPAIGNS.forEach(camp => {
+    if (!activeCampaigns.has(camp.id)) return;
+    const campBattles = BATTLES
+      .filter(b => b.campaign === camp.id)
+      .filter(b => {
+        if (!periodYears) return true;
+        const y = parseInt(b.date.split('-')[0]);
+        return y >= periodYears[0] && y <= periodYears[1];
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (campBattles.length < 2) return;
+
+    const latlngs = campBattles.map(b => [b.lat, b.lng]);
+    const line = L.polyline(latlngs, {
+      color: camp.color,
+      weight: 4,
+      opacity: 0.90,
+      dashArray: '8, 5',
+      lineJoin: 'round',
+    }).addTo(map);
+
+    // Arrow-head dots at each waypoint to show direction
+    campBattles.forEach((b, i) => {
+      if (i === 0 || i === campBattles.length - 1) return; // skip first/last (has marker)
+    });
+    campaignLines.push(line);
+  });
+
+  // Draw markers on top
+  BATTLES.forEach(battle => {
+    if (!activeCampaigns.has(battle.campaign)) return;
+    if (periodYears) {
+      const y = parseInt(battle.date.split('-')[0]);
+      if (y < periodYears[0] || y > periodYears[1]) return;
+    }
+    battleMarkers.push(createBattleMarker(battle));
+  });
+}
+
+function renderCampaignList() {
+  const container = document.getElementById('campaign-list');
+  if (!container) return;
+  container.innerHTML = '';
+  CAMPAIGNS.forEach(camp => {
+    const active = activeCampaigns.has(camp.id);
+    const row = document.createElement('div');
+    row.className = 'campaign-row';
+    row.innerHTML = `
+      <div class="campaign-check" style="border-color:${camp.color};background:${active ? camp.color+'44' : 'transparent'}">
+        ${active ? '<span style="color:' + camp.color + '">✓</span>' : ''}
+      </div>
+      <div class="campaign-swatch" style="background:${camp.color};opacity:${active ? 1 : 0.25}"></div>
+      <span class="campaign-label" style="opacity:${active ? 1 : 0.4}">${camp.name}</span>
+    `;
+    row.addEventListener('click', () => {
+      if (activeCampaigns.has(camp.id)) activeCampaigns.delete(camp.id);
+      else activeCampaigns.add(camp.id);
+      renderCampaignList();
+      renderBattleMarkersAndLines();
+    });
+    container.appendChild(row);
+  });
+
+  // Select all / none
+  const ctrl = document.createElement('div');
+  ctrl.style.cssText = 'display:flex;gap:8px;margin-top:5px;padding-top:5px;border-top:1px solid rgba(201,151,61,0.12)';
+  ctrl.innerHTML = `
+    <span style="font-size:10px;color:rgba(201,151,61,0.8);cursor:pointer" id="sel-all">All</span>
+    <span style="font-size:10px;color:rgba(240,237,216,0.3)">|</span>
+    <span style="font-size:10px;color:rgba(201,151,61,0.8);cursor:pointer" id="sel-none">None</span>
+  `;
+  container.appendChild(ctrl);
+  document.getElementById('sel-all').addEventListener('click', () => {
+    CAMPAIGNS.forEach(c => activeCampaigns.add(c.id));
+    renderCampaignList(); renderBattleMarkersAndLines();
+  });
+  document.getElementById('sel-none').addEventListener('click', () => {
+    activeCampaigns.clear();
+    renderCampaignList(); renderBattleMarkersAndLines();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  addTooltipStyle();
+  initMap();
+  renderPeriodFilters();
+  renderLegend();
+  renderMarkers();
+  renderCampaignList();
+  renderBattleMarkersAndLines();
+  renderList();
+
+  document.getElementById('info-close').addEventListener('click', () => {
+    document.getElementById('info-card').classList.remove('visible');
+    selectedLoc = null;
+    renderList();
+  });
+});
+</script>
+</body>
+</html>
